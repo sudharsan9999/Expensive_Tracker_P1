@@ -19,6 +19,11 @@ let mlSuggestedCategory = null;
 let filterDebounceTimer = null;
 let mlDebounceTimer = null;
 
+// Helper to check static hosting (e.g. GitHub Pages)
+function isStaticHost() {
+    return window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
+}
+
 // Helper to get active User ID
 function getUserId() {
     return (currentUser && currentUser.id) ? currentUser.id : 1;
@@ -835,16 +840,35 @@ function switchAuthTab(type) {
 async function handleLogin(e) {
     e.preventDefault();
     const loginInput = document.getElementById('loginInput').value.trim();
-    const loginPassword = document.getElementById('loginPassword').value;
     const alertBox = document.getElementById('loginAlert');
-    alertBox.classList.add('hidden');
+    if (alertBox) alertBox.classList.add('hidden');
+
+    if (isStaticHost()) {
+        currentUser = {
+            id: 1,
+            name: loginInput || 'Demo User',
+            username: loginInput || 'demo',
+            email: loginInput && loginInput.includes('@') ? loginInput : 'demo@expensetracker.com',
+            address: '123 Tech Park, Silicon Valley, CA',
+            monthly_budget: 1500
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        checkAuthStatus();
+        await loadDashboardStats();
+        await loadExpenses();
+        await loadBudgetAndPrediction();
+        await loadUserProfile();
+        return;
+    }
 
     try {
+        const loginPassword = document.getElementById('loginPassword').value;
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ login: loginInput, password: loginPassword })
         });
+        if (!response.ok) throw new Error('API server unavailable');
         const data = await response.json();
 
         if (data.status === 'success') {
@@ -860,7 +884,6 @@ async function handleLogin(e) {
             alertBox.classList.remove('hidden');
         }
     } catch (err) {
-        // Fallback for static hosting (GitHub Pages)
         currentUser = {
             id: 1,
             name: loginInput || 'Demo User',
@@ -886,7 +909,25 @@ async function handleRegister(e) {
     const password = document.getElementById('regPassword').value;
     const address = document.getElementById('regAddress').value.trim();
     const alertBox = document.getElementById('regAlert');
-    alertBox.classList.add('hidden');
+    if (alertBox) alertBox.classList.add('hidden');
+
+    if (isStaticHost()) {
+        currentUser = {
+            id: 1,
+            name: name || 'Demo User',
+            username: username || 'demo',
+            email: email || 'demo@expensetracker.com',
+            address: address || '123 Tech Park, Silicon Valley, CA',
+            monthly_budget: 1500
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        checkAuthStatus();
+        await loadDashboardStats();
+        await loadExpenses();
+        await loadBudgetAndPrediction();
+        await loadUserProfile();
+        return;
+    }
 
     try {
         const response = await fetch('/api/auth/register', {
@@ -894,6 +935,7 @@ async function handleRegister(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, username, email, password, address })
         });
+        if (!response.ok) throw new Error('API server unavailable');
         const data = await response.json();
 
         if (data.status === 'success') {
@@ -909,7 +951,6 @@ async function handleRegister(e) {
             alertBox.classList.remove('hidden');
         }
     } catch (err) {
-        // Fallback for static hosting (GitHub Pages)
         currentUser = {
             id: 1,
             name: name || 'Demo User',
