@@ -391,7 +391,7 @@ def get_dashboard_stats():
     # Get User Budget
     cursor.execute("SELECT monthly_budget FROM users WHERE id = ?", (user_id,))
     user_row = cursor.fetchone()
-    monthly_budget = user_row['monthly_budget'] if user_row else 1500.0
+    monthly_budget = user_row['monthly_budget'] if (user_row and user_row['monthly_budget']) else 2500.0
 
     # Total Expenses (All-time)
     cursor.execute("SELECT SUM(amount) as total FROM expenses WHERE user_id = ?", (user_id,))
@@ -518,7 +518,7 @@ def manage_budget():
     user = cursor.fetchone()
     conn.close()
 
-    return jsonify({"status": "success", "monthly_budget": user['monthly_budget'] if user else 1500.0})
+    return jsonify({"status": "success", "monthly_budget": user['monthly_budget'] if (user and user['monthly_budget']) else 2500.0})
 
 
 # ----------------------------
@@ -532,7 +532,7 @@ def register():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     address = data.get('address', '').strip()
-    monthly_budget = data.get('monthly_budget', 1500.0)
+    monthly_budget = data.get('monthly_budget', 2500.0)
 
     if not name or not email or not username or not password:
         return jsonify({"status": "error", "message": "Full Name, Username, Email, and Password are required."}), 400

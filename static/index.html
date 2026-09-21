@@ -77,6 +77,9 @@
         <main class="main-content">
             <!-- Top Header -->
             <header class="top-header">
+                <button class="btn-mobile-toggle" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="header-title">
                     <h1 id="pageTitle">Dashboard Overview</h1>
                     <p class="subtitle" id="pageSubtitle">Real-time financial analytics & ML category predictions</p>
@@ -85,7 +88,7 @@
                 <div class="header-actions">
                     <div class="budget-badge-pill" id="headerBudgetPill">
                         <i class="fa-solid fa-wallet"></i>
-                        <span>Monthly Budget: <strong id="headerBudgetAmount">₹1,500.00</strong></span>
+                        <span>Monthly Budget: <strong id="headerBudgetAmount">₹2,500.00</strong></span>
                     </div>
                     <button class="btn btn-secondary-header" onclick="openImportModal()">
                         <i class="fa-solid fa-file-import"></i> Upload CSV File
@@ -337,7 +340,7 @@
                         <div class="form-group margin-top-md">
                             <label for="inputMonthlyBudget">Monthly Budget Amount (₹):</label>
                             <div class="input-with-button">
-                                <input type="number" id="inputMonthlyBudget" class="form-input" min="100" step="50" value="1500">
+                                <input type="number" id="inputMonthlyBudget" class="form-input" min="100" step="50" value="2500">
                                 <button class="btn btn-primary" onclick="saveMonthlyBudget()">Save Budget</button>
                             </div>
                         </div>

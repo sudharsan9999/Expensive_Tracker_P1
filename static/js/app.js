@@ -59,11 +59,20 @@ async function initApp() {
     }
 }
 
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('mainSidebar');
+    if (sidebar) sidebar.classList.toggle('mobile-active');
+}
+
 // --------------------------------------------------------------------------
 // 1. NAVIGATION & TAB SWITCHING
 // --------------------------------------------------------------------------
 function switchTab(tabId) {
     currentTab = tabId;
+
+    // Close mobile drawer on navigation
+    const sidebar = document.getElementById('mainSidebar');
+    if (sidebar) sidebar.classList.remove('mobile-active');
     
     // Update active state in sidebar menu
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));

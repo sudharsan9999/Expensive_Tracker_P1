@@ -26,7 +26,7 @@ def init_db():
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         address TEXT DEFAULT '',
-        monthly_budget REAL DEFAULT 1500.0,
+        monthly_budget REAL DEFAULT 2500.0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
