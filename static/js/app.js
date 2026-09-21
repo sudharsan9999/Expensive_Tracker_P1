@@ -732,7 +732,21 @@ async function handleSaveExpense(e) {
             alert(data.message || 'Error saving expense.');
         }
     } catch (err) {
-        console.error('Error saving expense:', err);
+        // Fallback for static hosting (GitHub Pages)
+        const catObj = categoriesMap[category] || { icon: 'fa-tag', color: '#6366f1' };
+        if (id) {
+            const idx = currentExpensesList.findIndex(e => e.id == id);
+            if (idx !== -1) {
+                currentExpensesList[idx] = { id: parseInt(id), description, amount, category, date, payment_method, icon: catObj.icon, color: catObj.color };
+            }
+        } else {
+            const newId = Date.now();
+            currentExpensesList.unshift({ id: newId, description, amount, category, date, payment_method, icon: catObj.icon, color: catObj.color });
+        }
+        closeExpenseModal();
+        loadExpenses();
+        loadDashboardStats();
+        loadBudgetAndPrediction();
     }
 }
 
@@ -748,7 +762,11 @@ async function deleteExpense(id) {
             loadBudgetAndPrediction();
         }
     } catch (err) {
-        console.error('Error deleting expense:', err);
+        // Fallback for static hosting (GitHub Pages)
+        currentExpensesList = currentExpensesList.filter(e => e.id !== id);
+        loadExpenses();
+        loadDashboardStats();
+        loadBudgetAndPrediction();
     }
 }
 
@@ -780,12 +798,19 @@ function escapeHtml(str) {
 function checkAuthStatus() {
     const authModal = document.getElementById('authModal');
     if (!currentUser) {
-        authModal.classList.remove('hidden');
-    } else {
-        authModal.classList.add('hidden');
-        document.getElementById('sidebarUserName').innerText = currentUser.name || currentUser.username;
-        document.getElementById('sidebarUserEmail').innerText = currentUser.email;
+        currentUser = {
+            id: 1,
+            name: "Demo User",
+            username: "demo",
+            email: "demo@expensetracker.com",
+            address: "123 Tech Park, Silicon Valley, CA",
+            monthly_budget: 1500
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
     }
+    authModal.classList.add('hidden');
+    document.getElementById('sidebarUserName').innerText = currentUser.name || currentUser.username;
+    document.getElementById('sidebarUserEmail').innerText = currentUser.email;
 }
 
 function switchAuthTab(type) {
@@ -835,8 +860,21 @@ async function handleLogin(e) {
             alertBox.classList.remove('hidden');
         }
     } catch (err) {
-        alertBox.innerText = 'Network error connecting to authentication server.';
-        alertBox.classList.remove('hidden');
+        // Fallback for static hosting (GitHub Pages)
+        currentUser = {
+            id: 1,
+            name: loginInput || 'Demo User',
+            username: loginInput || 'demo',
+            email: loginInput && loginInput.includes('@') ? loginInput : 'demo@expensetracker.com',
+            address: '123 Tech Park, Silicon Valley, CA',
+            monthly_budget: 1500
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        checkAuthStatus();
+        await loadDashboardStats();
+        await loadExpenses();
+        await loadBudgetAndPrediction();
+        await loadUserProfile();
     }
 }
 
@@ -871,8 +909,21 @@ async function handleRegister(e) {
             alertBox.classList.remove('hidden');
         }
     } catch (err) {
-        alertBox.innerText = 'Network error connecting to registration server.';
-        alertBox.classList.remove('hidden');
+        // Fallback for static hosting (GitHub Pages)
+        currentUser = {
+            id: 1,
+            name: name || 'Demo User',
+            username: username || 'demo',
+            email: email || 'demo@expensetracker.com',
+            address: address || '123 Tech Park, Silicon Valley, CA',
+            monthly_budget: 1500
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        checkAuthStatus();
+        await loadDashboardStats();
+        await loadExpenses();
+        await loadBudgetAndPrediction();
+        await loadUserProfile();
     }
 }
 
