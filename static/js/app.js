@@ -102,45 +102,71 @@ function switchTab(tabId) {
 async function loadCategories() {
     try {
         const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('API not available');
         const data = await response.json();
         if (data.status === 'success') {
             allCategoriesList = data.categories;
-            categoriesMap = {};
-            
-            const filterSelect = document.getElementById('filterCategory');
-            const inputSelect = document.getElementById('inputCategory');
-            
-            // Clear existing except default
-            filterSelect.innerHTML = '<option value="All">All Categories</option>';
-            inputSelect.innerHTML = '<option value="">Select Category</option>';
-
-            allCategoriesList.forEach(cat => {
-                categoriesMap[cat.name] = cat;
-                
-                // Add to Filter dropdown
-                const opt1 = document.createElement('option');
-                opt1.value = cat.name;
-                opt1.textContent = cat.name;
-                filterSelect.appendChild(opt1);
-
-                // Add to Input dropdown
-                const opt2 = document.createElement('option');
-                opt2.value = cat.name;
-                opt2.textContent = cat.name;
-                inputSelect.appendChild(opt2);
-            });
+        } else {
+            throw new Error('Non-success category response');
         }
     } catch (err) {
-        console.error('Error loading categories:', err);
+        // Fallback default categories for static preview (GitHub Pages)
+        allCategoriesList = [
+            { id: 1, name: 'Food & Dining', icon: 'fa-utensils', color: '#EF4444' },
+            { id: 2, name: 'Transportation', icon: 'fa-car', color: '#F59E0B' },
+            { id: 3, name: 'Bills & Utilities', icon: 'fa-file-invoice-dollar', color: '#10B981' },
+            { id: 4, name: 'Shopping', icon: 'fa-shopping-bag', color: '#EC4899' },
+            { id: 5, name: 'Entertainment', icon: 'fa-film', color: '#8B5CF6' },
+            { id: 6, name: 'Health & Fitness', icon: 'fa-heartbeat', color: '#06B6D4' },
+            { id: 7, name: 'Education', icon: 'fa-graduation-cap', color: '#3B82F6' },
+            { id: 8, name: 'Travel & Vacation', icon: 'fa-plane', color: '#6366F1' },
+            { id: 9, name: 'Investments', icon: 'fa-chart-line', color: '#10B981' },
+            { id: 10, name: 'Miscellaneous', icon: 'fa-ellipsis-h', color: '#6B7280' }
+        ];
+    }
+
+    categoriesMap = {};
+    const filterSelect = document.getElementById('filterCategory');
+    const inputSelect = document.getElementById('inputCategory');
+    
+    if (filterSelect && inputSelect) {
+        filterSelect.innerHTML = '<option value="All">All Categories</option>';
+        inputSelect.innerHTML = '<option value="">Select Category</option>';
+
+        allCategoriesList.forEach(cat => {
+            categoriesMap[cat.name] = cat;
+            
+            const opt1 = document.createElement('option');
+            opt1.value = cat.name;
+            opt1.textContent = cat.name;
+            filterSelect.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = cat.name;
+            opt2.textContent = cat.name;
+            inputSelect.appendChild(opt2);
+        });
     }
 }
 
 // --------------------------------------------------------------------------
 // 3. DASHBOARD STATS & CHART.JS
 // --------------------------------------------------------------------------
+function getDefaultDemoExpenses() {
+    return [
+        { id: 101, date: '2026-09-21', description: 'Starbucks mocha coffee & croissant', category: 'Food & Dining', payment_method: 'UPI', amount: 350.00, icon: 'fa-utensils', color: '#EF4444' },
+        { id: 102, date: '2026-09-20', description: 'Uber ride to international airport', category: 'Transportation', payment_method: 'Card', amount: 650.00, icon: 'fa-car', color: '#F59E0B' },
+        { id: 103, date: '2026-09-18', description: 'Monthly electricity power bill', category: 'Bills & Utilities', payment_method: 'Bank Transfer', amount: 1250.00, icon: 'fa-file-invoice-dollar', color: '#10B981' },
+        { id: 104, date: '2026-09-15', description: 'Netflix 4K Monthly Streaming Subscription', category: 'Entertainment', payment_method: 'Credit Card', amount: 649.00, icon: 'fa-film', color: '#8B5CF6' },
+        { id: 105, date: '2026-09-12', description: 'Nike Running Sneakers Shoes', category: 'Shopping', payment_method: 'Debit Card', amount: 3499.00, icon: 'fa-shopping-bag', color: '#EC4899' },
+        { id: 106, date: '2026-09-08', description: 'Pharmacy prescription medicine', category: 'Health & Fitness', payment_method: 'UPI', amount: 480.00, icon: 'fa-heartbeat', color: '#06B6D4' }
+    ];
+}
+
 async function loadDashboardStats() {
     try {
         const response = await fetch(`/api/dashboard/stats?user_id=${getUserId()}`);
+        if (!response.ok) throw new Error('API not available');
         const data = await response.json();
         
         if (data.status === 'success') {
@@ -184,9 +210,40 @@ async function loadDashboardStats() {
             
             // Update Report Insights
             document.getElementById('reportDailyAvg').innerText = `₹${(stats.current_month_total / 30).toFixed(2)}`;
+            return;
         }
     } catch (err) {
-        console.error('Error loading dashboard stats:', err);
+        // Fallback for static hosting (GitHub Pages)
+        const demoList = currentExpensesList.length > 0 ? currentExpensesList : getDefaultDemoExpenses();
+        const total = demoList.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        const budget = 1500;
+        const budgetPct = Math.round((total / budget) * 100);
+
+        document.getElementById('statTotalSpending').innerText = `₹${total.toFixed(2)}`;
+        document.getElementById('statCurrentMonth').innerText = `₹${total.toFixed(2)}`;
+        document.getElementById('statTxCount').innerText = `${demoList.length} expenses logged`;
+        document.getElementById('headerBudgetAmount').innerText = `₹${budget.toFixed(2)}`;
+        document.getElementById('statBudgetUsedPct').innerText = `${budgetPct}%`;
+        document.getElementById('statBudgetProgressBar').style.width = `${Math.min(budgetPct, 100)}%`;
+        document.getElementById('statTopCategory').innerText = 'Shopping';
+        document.getElementById('reportDailyAvg').innerText = `₹${(total / 30).toFixed(2)}`;
+
+        const catMap = {};
+        demoList.forEach(item => {
+            catMap[item.category] = (catMap[item.category] || 0) + parseFloat(item.amount);
+        });
+
+        renderCategoryChart({
+            labels: Object.keys(catMap),
+            data: Object.values(catMap)
+        });
+
+        renderTrendChart({
+            labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+            data: [4500, 5200, 4800, 6100, 5900, total]
+        });
+
+        renderRecentTransactions(demoList.slice(0, 5));
     }
 }
 
@@ -285,10 +342,10 @@ function renderRecentTransactions(transactions) {
 // 4. EXPENSES MANAGEMENT (CRUD & MULTI-FILTER)
 // --------------------------------------------------------------------------
 async function loadExpenses() {
-    const category = document.getElementById('filterCategory').value;
-    const search = document.getElementById('filterSearch').value;
-    const startDate = document.getElementById('filterStartDate').value;
-    const endDate = document.getElementById('filterEndDate').value;
+    const category = document.getElementById('filterCategory') ? document.getElementById('filterCategory').value : 'All';
+    const search = document.getElementById('filterSearch') ? document.getElementById('filterSearch').value.trim() : '';
+    const startDate = document.getElementById('filterStartDate') ? document.getElementById('filterStartDate').value : '';
+    const endDate = document.getElementById('filterEndDate') ? document.getElementById('filterEndDate').value : '';
 
     let url = `/api/expenses?user_id=${getUserId()}`;
     if (category && category !== 'All') url += `&category=${encodeURIComponent(category)}`;
@@ -298,13 +355,25 @@ async function loadExpenses() {
 
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error('API not available');
         const data = await response.json();
         if (data.status === 'success') {
             currentExpensesList = data.expenses;
             renderExpensesTable(currentExpensesList);
+            return;
         }
     } catch (err) {
-        console.error('Error fetching expenses:', err);
+        if (!currentExpensesList || currentExpensesList.length === 0) {
+            currentExpensesList = getDefaultDemoExpenses();
+        }
+        let filtered = [...currentExpensesList];
+        if (category && category !== 'All') {
+            filtered = filtered.filter(e => e.category === category);
+        }
+        if (search) {
+            filtered = filtered.filter(e => e.description.toLowerCase().includes(search.toLowerCase()) || (e.category && e.category.toLowerCase().includes(search.toLowerCase())));
+        }
+        renderExpensesTable(filtered);
     }
 }
 
@@ -445,7 +514,28 @@ function debouncedMLPredictTest() {
                 card.classList.remove('hidden');
             }
         } catch (err) {
-            console.error('ML Playground Test error:', err);
+            // Client-side fallback rule engine for static hosting (GitHub Pages)
+            const lower = text.toLowerCase();
+            let cat = 'Miscellaneous';
+            let conf = 88;
+            if (lower.match(/coffee|pizza|burger|starbucks|restaurant|food|dinner|lunch|breakfast|swiggy|zomato|dominos|meal|kitchen|snack/)) { cat = 'Food & Dining'; conf = 96; }
+            else if (lower.match(/uber|ola|cab|fuel|petrol|diesel|flight|airline|train|bus|metro|auto|fare|taxi|car/)) { cat = 'Transportation'; conf = 94; }
+            else if (lower.match(/bill|electricity|power|water|internet|wifi|recharge|mobile|utility|gas/)) { cat = 'Bills & Utilities'; conf = 95; }
+            else if (lower.match(/netflix|movie|cinema|spotify|youtube|game|gameplay|concert|ticket|show/)) { cat = 'Entertainment'; conf = 92; }
+            else if (lower.match(/nike|shoes|shirt|clothes|amazon|flipkart|myntra|shopping|dress|watch|jacket/)) { cat = 'Shopping'; conf = 91; }
+            else if (lower.match(/hospital|doctor|medicine|pharmacy|clinic|gym|fitness|workout|health/)) { cat = 'Health & Fitness'; conf = 90; }
+            else if (lower.match(/course|udemy|book|school|college|tuition|fee|exam|class|learning/)) { cat = 'Education'; conf = 93; }
+
+            document.getElementById('mlPredictedCategoryName').innerText = cat;
+            document.getElementById('mlConfidenceScoreText').innerText = `${conf}%`;
+            document.getElementById('mlConfidenceBarFill').style.width = `${conf}%`;
+
+            const chipContainer = document.getElementById('mlTopSuggestionsChips');
+            chipContainer.innerHTML = `
+                <span class="chip"><strong>${cat}</strong>: ${conf}%</span>
+                <span class="chip"><strong>Miscellaneous</strong>: ${(100 - conf).toFixed(0)}%</span>
+            `;
+            card.classList.remove('hidden');
         }
     }, 250);
 }
@@ -472,6 +562,7 @@ async function triggerRetrainML() {
 async function loadBudgetAndPrediction() {
     try {
         const res = await fetch(`/api/ml/predict-next-month?user_id=${getUserId()}`);
+        if (!res.ok) throw new Error('API not available');
         const data = await res.json();
         
         if (data.status === 'success') {
@@ -498,9 +589,25 @@ async function loadBudgetAndPrediction() {
             }
 
             renderPredictionChart(pred.monthly_labels, pred.monthly_history, pred.predicted_amount);
+            return;
         }
     } catch (err) {
-        console.error('Error loading budget prediction:', err);
+        // Fallback calculation for static host (GitHub Pages)
+        const labels = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
+        const history = [4500, 5200, 4800, 6100, 5900, 7178];
+        const predictedAmount = 6450.00;
+
+        document.getElementById('predNextMonthAmount').innerText = `₹${predictedAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('predMonthlyAvg').innerText = `₹5,613.00`;
+        document.getElementById('predMonthlyRate').innerText = `+₹320.00 / mo`;
+
+        const trendPill = document.getElementById('predTrendPill');
+        const trendText = document.getElementById('predTrendText');
+        trendPill.style.background = 'rgba(16, 185, 129, 0.15)';
+        trendPill.style.color = '#34d399';
+        trendText.innerText = 'Stable Forecast (+320/mo)';
+
+        renderPredictionChart(labels, history, predictedAmount);
     }
 }
 

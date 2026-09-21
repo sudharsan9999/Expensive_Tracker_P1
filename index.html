@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Expense Tracker | AI & ML Powered Financial Management</title>
+    <meta name="description" content="AI-Powered Smart Expense Tracker with TF-IDF Category Classification and Linear Regression Next Month Budget Prediction.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="static/css/styles.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="mainSidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <img src="static/logo.png" alt="Smart Expense Logo" class="brand-img-logo">
+                </div>
+                <div class="brand-text">
+                    <h2>Smart Expense</h2>
+                    <span class="badge-ml">ML Enabled</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#expenses" class="nav-item" id="nav-expenses" onclick="switchTab('expenses')">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Expenses</span>
+                </a>
+                <a href="#ml-classifier" class="nav-item" id="nav-ml-classifier" onclick="switchTab('ml-classifier')">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>ML Classifier</span>
+                </a>
+                <a href="#budget-prediction" class="nav-item" id="nav-budget-prediction" onclick="switchTab('budget-prediction')">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Budget & Forecast</span>
+                </a>
+                <a href="#reports" class="nav-item" id="nav-reports" onclick="switchTab('reports')">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Reports & Export</span>
+                </a>
+                <a href="#profile" class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span>User Profile</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-mini">
+                    <div class="user-details-clickable" onclick="switchTab('profile')" title="View User Profile">
+                        <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                        <div class="user-info">
+                            <span class="user-name" id="sidebarUserName">Demo User</span>
+                            <span class="user-role" id="sidebarUserEmail">demo@expensetracker.com</span>
+                        </div>
+                    </div>
+                    <button class="btn-logout-icon" onclick="logoutUser()" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="pageTitle">Dashboard Overview</h1>
+                    <p class="subtitle" id="pageSubtitle">Real-time financial analytics & ML category predictions</p>
+                </div>
+
+                <div class="header-actions">
+                    <div class="budget-badge-pill" id="headerBudgetPill">
+                        <i class="fa-solid fa-wallet"></i>
+                        <span>Monthly Budget: <strong id="headerBudgetAmount">₹1,500.00</strong></span>
+                    </div>
+                    <button class="btn btn-secondary-header" onclick="openImportModal()">
+                        <i class="fa-solid fa-file-import"></i> Upload CSV File
+                    </button>
+                    <button class="btn btn-primary" onclick="openAddModal()">
+                        <i class="fa-solid fa-plus"></i> Add Expense
+                    </button>
+                </div>
+            </header>
+
+            <!-- Notification Banner -->
+            <div id="alertBanner" class="alert-banner hidden">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="alertMessage">Budget status notification</span>
+            </div>
+
+            <!-- TAB 1: DASHBOARD OVERVIEW -->
+            <section id="tab-dashboard" class="tab-page active">
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="card-icon bg-indigo">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </div>
+                        <div class="card-data">
+                            <span class="card-label">Total Spending</span>
+                            <h3 id="statTotalSpending">₹0.00</h3>
+                            <span class="card-sub">All-time transactions</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-icon bg-emerald">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                        <div class="card-data">
+                            <span class="card-label">This Month Spending</span>
+                            <h3 id="statCurrentMonth">₹0.00</h3>
+                            <span class="card-sub" id="statTxCount">0 expenses logged</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-icon bg-amber">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                        <div class="card-data">
+                            <span class="card-label">Budget Used</span>
+                            <h3 id="statBudgetUsedPct">0%</h3>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="statBudgetProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-icon bg-rose">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <div class="card-data">
+                            <span class="card-label">Top Category</span>
+                            <h3 id="statTopCategory">N/A</h3>
+                            <span class="card-sub">Highest expense share</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fa-solid fa-chart-pie"></i> Category Breakdown (Current Month)</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fa-solid fa-chart-column"></i> Monthly Spending Trend (Last 6 Months)</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions Table -->
+                <div class="card-section">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Transactions</h3>
+                        <button class="btn btn-outline-sm" onclick="switchTab('expenses')">View All</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Method</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTransactionsBody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: EXPENSES MANAGEMENT -->
+            <section id="tab-expenses" class="tab-page hidden">
+                <div class="filter-toolbar">
+                    <div class="filter-group search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="filterSearch" placeholder="Search description or category..." onkeyup="debouncedFilterExpenses()">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterCategory">Category:</label>
+                        <select id="filterCategory" onchange="loadExpenses()">
+                            <option value="All">All Categories</option>
+                            <!-- Dynamic category options -->
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterStartDate">From:</label>
+                        <input type="date" id="filterStartDate" onchange="loadExpenses()">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterEndDate">To:</label>
+                        <input type="date" id="filterEndDate" onchange="loadExpenses()">
+                    </div>
+
+                    <button class="btn btn-secondary-sm" onclick="resetFilters()">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+
+                    <button class="btn btn-emerald-sm ml-auto" onclick="exportCSV()">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV
+                    </button>
+                    <button class="btn btn-indigo-sm margin-left-xs" onclick="openImportModal()">
+                        <i class="fa-solid fa-file-arrow-up"></i> Import Expenses File
+                    </button>
+                </div>
+
+                <div class="card-section">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Payment Method</th>
+                                    <th>Amount</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: ML CATEGORY CLASSIFIER DEMO -->
+            <section id="tab-ml-classifier" class="tab-page hidden">
+                <div class="ml-showcase-container">
+                    <div class="ml-info-banner">
+                        <div class="ml-info-icon"><i class="fa-solid fa-microchip"></i></div>
+                        <div class="ml-info-text">
+                            <h3>TF-IDF Vectorizer + Logistic Regression Classifier</h3>
+                            <p>This ML model processes text descriptions by extracting term-frequency inverse document frequency (TF-IDF) n-gram features, then feeds them into a Logistic Regression classification model to accurately map descriptions to expense categories.</p>
+                        </div>
+                    </div>
+
+                    <div class="ml-interactive-card">
+                        <h3><i class="fa-solid fa-flask"></i> Interactive ML Classifier Playground</h3>
+                        <p class="sub-text">Type any expense description below to test category prediction in real-time:</p>
+
+                        <div class="form-group margin-top-md">
+                            <input type="text" id="mlTestInput" class="form-input text-lg" placeholder="e.g., Pizza party with friends at Dominos" onkeyup="debouncedMLPredictTest()">
+                        </div>
+
+                        <!-- Live ML Prediction Result Card -->
+                        <div id="mlTestResultCard" class="ml-result-card hidden">
+                            <div class="result-header">
+                                <span class="badge-predicted"><i class="fa-solid fa-sparkles"></i> Predicted Category</span>
+                                <h2 id="mlPredictedCategoryName">Food & Dining</h2>
+                            </div>
+
+                            <div class="confidence-meter-box">
+                                <div class="meter-label">
+                                    <span>Model Confidence Score:</span>
+                                    <strong id="mlConfidenceScoreText">95%</strong>
+                                </div>
+                                <div class="confidence-bar-bg">
+                                    <div id="mlConfidenceBarFill" class="confidence-bar-fill" style="width: 95%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="suggestions-list">
+                                <span>Top Class Probabilities:</span>
+                                <div id="mlTopSuggestionsChips" class="chip-group">
+                                    <!-- Dynamic chips -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ml-action-row margin-top-lg">
+                            <button class="btn btn-outline" onclick="triggerRetrainML()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Re-Train ML Model on Database
+                            </button>
+                            <span class="text-sm text-muted" id="retrainStatusText">Model state: Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Preset Sample Prompts -->
+                    <div class="sample-prompts-card">
+                        <h4>Try clicking these sample descriptions:</h4>
+                        <div class="chip-group margin-top-sm">
+                            <button class="sample-chip" onclick="setMLTestText('Starbucks mocha coffee and croissant')">☕ Starbucks mocha coffee</button>
+                            <button class="sample-chip" onclick="setMLTestText('Uber ride to international airport')">🚗 Uber ride to airport</button>
+                            <button class="sample-chip" onclick="setMLTestText('Monthly electric power utility bill')">⚡ Monthly electric bill</button>
+                            <button class="sample-chip" onclick="setMLTestText('Netflix monthly 4K streaming plan')">🎬 Netflix streaming plan</button>
+                            <button class="sample-chip" onclick="setMLTestText('Nike running sneakers shopping')">👟 Nike running sneakers</button>
+                            <button class="sample-chip" onclick="setMLTestText('Udemy Python machine learning course')">🎓 Udemy Python course</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: BUDGET & EXPENSE PREDICTION (LINEAR REGRESSION) -->
+            <section id="tab-budget-prediction" class="tab-page hidden">
+                <div class="grid-2col">
+                    <!-- Budget Settings Card -->
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-sliders"></i> Monthly Budget Target</h3>
+                        <p class="sub-text">Set your spending ceiling to receive alert notifications:</p>
+                        
+                        <div class="form-group margin-top-md">
+                            <label for="inputMonthlyBudget">Monthly Budget Amount (₹):</label>
+                            <div class="input-with-button">
+                                <input type="number" id="inputMonthlyBudget" class="form-input" min="100" step="50" value="1500">
+                                <button class="btn btn-primary" onclick="saveMonthlyBudget()">Save Budget</button>
+                            </div>
+                        </div>
+
+                        <div class="budget-status-box margin-top-md" id="budgetStatusBox">
+                            <div class="status-header">
+                                <span class="status-title">Current Month Spending Status</span>
+                                <span class="status-badge" id="budgetStatusBadge">Safe</span>
+                            </div>
+                            <div class="progress-bar-container margin-top-sm">
+                                <div class="progress-bar" id="budgetTabProgressBar" style="width: 45%;"></div>
+                            </div>
+                            <div class="status-footer margin-top-xs">
+                                <span id="budgetTabSpentText">₹675.00 spent</span>
+                                <span id="budgetTabRemainingText">₹825.00 remaining</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Next Month ML Prediction Card (Linear Regression) -->
+                    <div class="card-section ml-prediction-box">
+                        <div class="ml-badge-header">
+                            <span class="badge-ml-sm"><i class="fa-solid fa-chart-line"></i> Linear Regression Model</span>
+                        </div>
+                        <h3>Estimated Next Month Expense</h3>
+                        
+                        <div class="prediction-large-display">
+                            <h2 id="predNextMonthAmount">₹0.00</h2>
+                            <div class="trend-indicator-pill" id="predTrendPill">
+                                <i class="fa-solid fa-arrow-trend-up"></i> <span id="predTrendText">Calculating trend...</span>
+                            </div>
+                        </div>
+
+                        <div class="prediction-metrics-row">
+                            <div class="p-metric">
+                                <span class="p-label">Historical Monthly Avg</span>
+                                <strong id="predMonthlyAvg">₹0.00</strong>
+                            </div>
+                            <div class="p-metric">
+                                <span class="p-label">Monthly Change Rate</span>
+                                <strong id="predMonthlyRate">₹0.00 / mo</strong>
+                            </div>
+                        </div>
+
+                        <div class="chart-body margin-top-md" style="height: 180px;">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: REPORTS & EXPORT -->
+            <section id="tab-reports" class="tab-page hidden">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="card-icon bg-indigo"><i class="fa-solid fa-file-csv"></i></div>
+                        <div class="card-data">
+                            <span class="card-label">CSV Data Export</span>
+                            <button class="btn btn-emerald margin-top-xs" onclick="exportCSV()">
+                                <i class="fa-solid fa-download"></i> Download CSV Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-icon bg-emerald"><i class="fa-solid fa-heart-pulse"></i></div>
+                        <div class="card-data">
+                            <span class="card-label">Budget Health Score</span>
+                            <h3 id="reportHealthScore">85 / 100</h3>
+                            <span class="card-sub text-emerald">Good spending control</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-icon bg-amber"><i class="fa-solid fa-calculator"></i></div>
+                        <div class="card-data">
+                            <span class="card-label">Daily Average Spend</span>
+                            <h3 id="reportDailyAvg">₹0.00</h3>
+                            <span class="card-sub">Current month average</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-section margin-top-lg">
+                    <h3><i class="fa-solid fa-lightbulb"></i> Spending Insights & ML Recommendations</h3>
+                    <ul class="insights-list margin-top-md" id="insightsList">
+                        <li><i class="fa-solid fa-circle-check text-emerald"></i> Your highest spending category this month is <strong>Food & Dining</strong>.</li>
+                        <li><i class="fa-solid fa-circle-check text-emerald"></i> Based on your Linear Regression trend, your next month expenses are expected to stay within reasonable bounds.</li>
+                        <li><i class="fa-solid fa-circle-info text-indigo"></i> You have logged over 50 transactions, ensuring high prediction accuracy for the TF-IDF category classifier.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- TAB 6: USER PROFILE & ACCOUNT SETTINGS -->
+            <section id="tab-profile" class="tab-page hidden">
+                <div class="grid-2col">
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-user-gear"></i> Personal Profile Information</h3>
+                        <p class="sub-text">View and manage your account credentials and personal details:</p>
+
+                        <form id="profileForm" onsubmit="handleSaveProfile(event)" class="margin-top-md">
+                            <div class="form-group">
+                                <label for="profileName">Full Name *</label>
+                                <input type="text" id="profileName" class="form-input" required placeholder="e.g. John Doe">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="profileUsername">Username</label>
+                                    <input type="text" id="profileUsername" class="form-input readonly-input" readonly>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="profileEmail">Email Address *</label>
+                                    <input type="email" id="profileEmail" class="form-input" required placeholder="user@example.com">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileAddress">Physical / Residential Address</label>
+                                <textarea id="profileAddress" class="form-input textarea-input" rows="3" placeholder="e.g. 123 Main Street, Suite 4B, New York, NY"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profileBudget">Monthly Budget Target (₹)</label>
+                                <input type="number" id="profileBudget" class="form-input" min="100" step="50" placeholder="1500">
+                            </div>
+
+                            <div class="margin-top-md">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+                                </button>
+                                <span class="text-sm margin-left-sm" id="profileSaveStatus"></span>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card-section">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Account Overview & Security</h3>
+                        <div class="profile-summary-box margin-top-md">
+                            <div class="profile-avatar-large">
+                                <i class="fa-solid fa-user-astronaut"></i>
+                            </div>
+                            <h2 id="summaryProfileName" class="margin-top-xs">Demo User</h2>
+                            <span class="badge-role" id="summaryProfileRole">Active Account</span>
+                            <div class="profile-info-list margin-top-md">
+                                <div class="p-info-item">
+                                    <i class="fa-solid fa-envelope"></i>
+                                    <span id="summaryProfileEmail">demo@expensetracker.com</span>
+                                </div>
+                                <div class="p-info-item">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <span id="summaryProfileAddress">123 Tech Park, Silicon Valley, CA</span>
+                                </div>
+                                <div class="p-info-item">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    <span>Target Budget: <strong id="summaryProfileBudget">₹2,500.00</strong></span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-danger-sm margin-top-lg" onclick="logoutUser()">
+                                <i class="fa-solid fa-right-from-bracket"></i> Sign Out of Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ADD / EDIT EXPENSE MODAL -->
+    <div class="modal-overlay hidden" id="expenseModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Expense</h3>
+                <button class="modal-close" onclick="closeExpenseModal()">&times;</button>
+            </div>
+
+            <form id="expenseForm" onsubmit="handleSaveExpense(event)">
+                <input type="hidden" id="expenseId">
+
+                <div class="form-group">
+                    <label for="inputDescription">Description *</label>
+                    <input type="text" id="inputDescription" class="form-input" placeholder="e.g. Starbucks coffee with team" required onkeyup="debouncedMLAutoSuggest()">
+                    
+                    <!-- Live ML Category Auto-Suggest Badge -->
+                    <div id="mlModalSuggestBadge" class="ml-suggest-pill hidden">
+                        <i class="fa-solid fa-sparkles"></i>
+                        <span>ML Suggested: <strong id="mlModalCategoryText">Food & Dining</strong> (<span id="mlModalConfText">92%</span>)</span>
+                        <button type="button" class="btn-chip-apply" onclick="applyMLSuggestion()">Apply</button>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="inputAmount">Amount (₹) *</label>
+                        <input type="number" id="inputAmount" class="form-input" step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label for="inputCategory">Category *</label>
+                        <select id="inputCategory" class="form-input" required>
+                            <!-- Dynamic category options -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="inputDate">Date *</label>
+                        <input type="date" id="inputDate" class="form-input" required>
+                    </div>
+
+                    <div class="form-group col-6">
+                        <label for="inputPaymentMethod">Payment Method</label>
+                        <select id="inputPaymentMethod" class="form-input">
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Debit Card">Debit Card</option>
+                            <option value="UPI">UPI / Digital</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitExpense">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BULK EXPENSES FILE UPLOAD MODAL -->
+    <div class="modal-overlay hidden" id="importModal">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-circle-plus"></i> Upload Expenses File (CSV)</h3>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p class="sub-text">Upload a CSV file containing your expenses across all categories. Uncategorized transactions will be auto-classified using our AI/ML model!</p>
+
+                <div class="import-actions-bar margin-top-sm">
+                    <button type="button" class="btn btn-outline-sm" onclick="downloadSampleCSV()">
+                        <i class="fa-solid fa-download"></i> Download Sample CSV Template
+                    </button>
+                </div>
+
+                <!-- File Drop Zone -->
+                <div class="file-drop-zone margin-top-md" id="fileDropZone" onclick="document.getElementById('csvFileInput').click()">
+                    <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                    <h4>Drag & Drop your CSV file here</h4>
+                    <p class="text-muted">or click to browse from your computer (.csv)</p>
+                    <input type="file" id="csvFileInput" accept=".csv, .txt" class="hidden" onchange="handleCSVFileChange(event)">
+                    <div id="fileSelectedBadge" class="file-selected-pill hidden">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span id="selectedFileName">filename.csv</span>
+                        <span id="selectedFileSize" class="text-muted"></span>
+                    </div>
+                </div>
+
+                <!-- ML Auto Categorization Option -->
+                <div class="form-group margin-top-md">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chkAutoCategorize" checked>
+                        <span><strong>Auto-categorize missing categories using ML</strong> (TF-IDF + Logistic Regression)</span>
+                    </label>
+                </div>
+
+                <!-- CSV Preview Table Container -->
+                <div id="csvPreviewContainer" class="margin-top-md hidden">
+                    <div class="preview-header">
+                        <h4><i class="fa-solid fa-table-list"></i> File Preview (<span id="csvRowCount">0</span> records found)</h4>
+                    </div>
+                    <div class="table-responsive max-height-preview">
+                        <table class="data-table data-table-sm" id="csvPreviewTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Category</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csvPreviewBody">
+                                <!-- Dynamic preview rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Upload Progress & Status Banner -->
+                <div id="importStatusBanner" class="alert-banner hidden margin-top-md"></div>
+            </div>
+
+            <div class="modal-footer margin-top-md">
+                <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitImport" onclick="processCSVImport()" disabled>
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Import Expenses
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER AUTHENTICATION MODAL (LOGIN & REGISTER) -->
+    <div class="modal-overlay hidden" id="authModal">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-brand">
+                    <img src="static/logo.png" alt="Smart Expense Logo" class="auth-img-logo">
+                    <h2>Smart Expense</h2>
+                </div>
+                <p class="auth-subtitle">AI & ML Powered Financial Management</p>
+                <div class="auth-tab-group">
+                    <button id="tabBtnLogin" class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+                    <button id="tabBtnRegister" class="auth-tab" onclick="switchAuthTab('register')">Register New User</button>
+                </div>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginInput">Username or Email *</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="loginInput" class="form-input" placeholder="e.g. demo or demo@expensetracker.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Password *</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required>
+                    </div>
+                </div>
+
+                <div id="loginAlert" class="auth-error-alert hidden"></div>
+
+                <button type="submit" class="btn btn-primary btn-block margin-top-md">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+                
+                <p class="auth-demo-hint margin-top-sm">Demo Login: Username <strong>demo</strong> / Password <strong>demo123</strong></p>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form id="registerForm" class="auth-form hidden" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regName">Full Name *</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-id-badge"></i>
+                        <input type="text" id="regName" class="form-input" placeholder="e.g. Sudhir Kumar" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="regUsername">Username *</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-at"></i>
+                            <input type="text" id="regUsername" class="form-input" placeholder="sudhir123" required>
+                        </div>
+                    </div>
+                    <div class="form-group col-6">
+                        <label for="regEmail">Email Address *</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-envelope"></i>
+                            <input type="email" id="regEmail" class="form-input" placeholder="sudhir@example.com" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regPassword">Password *</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="regPassword" class="form-input" placeholder="Create password" required minlength="4">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regAddress">Residential / Office Address</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <input type="text" id="regAddress" class="form-input" placeholder="e.g. Flat 402, Green Enclave, City">
+                    </div>
+                </div>
+
+                <div id="regAlert" class="auth-error-alert hidden"></div>
+
+                <button type="submit" class="btn btn-emerald btn-block margin-top-md">
+                    <i class="fa-solid fa-user-plus"></i> Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Script -->
+    <script src="static/js/app.js"></script>
+</body>
+</html>
